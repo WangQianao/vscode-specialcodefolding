@@ -16,18 +16,20 @@ const types = require("@babel/types");
 function compile(code: string,offset:number,document:vscode.TextDocument) {
 	// 1.parse
 	const ast = parser.parse(code);
-	
 	// 2,traverse
 	let variableDeclarationLoc:Range[]=[];
 	const MyVisitor = {
 		VariableDeclaration(path){
 			variableDeclarationLoc.push(new Range(document.positionAt(path.node.start+offset),document.positionAt(path.node.end+offset)));
-
 		},
 		Function(path){
-			variableDeclarationLoc.push(new Range(document.positionAt(0+offset),document.positionAt(path.node.body.start+offset+1)));
+			variableDeclarationLoc.push(new Range(document.positionAt(path.node.start+offset),document.positionAt(path.node.body.start+offset+1)));
 			variableDeclarationLoc.push(new Range(document.positionAt(path.node.body.end+offset-1),document.positionAt(path.node.body.end+offset)));
-			
+			// console.log(document.positionAt(0+offset).line,document.positionAt(0+offset).character);
+			// console.log(document.positionAt(path.node.body.start+offset+1).line,document.positionAt(path.node.body.start+offset+1).character);
+			// console.log(document.positionAt(path.node.body.end+offset-1).line,document.positionAt(path.node.body.end+offset-1).character);
+			// console.log(document.positionAt(path.node.body.end+offset).line,document.positionAt(path.node.body.end+offset).character);
+			// console.log("*****************************");
 		}
 	};
 	// traverse 转换代码
@@ -38,7 +40,7 @@ function compile(code: string,offset:number,document:vscode.TextDocument) {
 			const bindex=document.offsetAt(b.start);
 			return aindex-bindex;
 		}
-	)
+	);
 	// for(let i=0;i<variableDeclarationLoc.length;i++)
 	// {
 	// 	console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
@@ -47,45 +49,65 @@ function compile(code: string,offset:number,document:vscode.TextDocument) {
 	return {"locArray":variableDeclarationLoc};
 }
 export function activate(context: vscode.ExtensionContext) {
-	const decoration = vscode.window.createTextEditorDecorationType(
-		{
-			"textDecoration": "line-through"
-		}
-	);
 	
+	let decorationArray:Object[]=[];
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.fold', async () => {
 
 		const editor = vscode.window.activeTextEditor as vscode.TextEditor;
 		const document=editor?.document as vscode.TextDocument;
-		const code = document.getText(editor.selection);
-		const startindex=document.offsetAt(editor?.selection.start);
-		if (code !== undefined&&startindex!==undefined) {
-			const data=compile(code,startindex,document);
-			let decorationRange:Range[]=[];
-			
-			for(let i=0;i<=data.locArray.length;i++)
-			{
-				let st:Position=new Position(0,0),ed:Position=new Position(0,0);
-				if(i===0){
-					st=editor.selection.start;
-					ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
-				}else if(i===data.locArray.length){
-					st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
-					ed=editor.selection.end;
-				}else{
-					st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
-					ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
+		for(let j=0;j<editor.selections.length;j++)
+		{
+			const decoration = vscode.window.createTextEditorDecorationType({"textDecoration": "line-through"});
+			decorationArray.push({"decoration":decoration,"loc":editor.selections[j]});
+			const code = document.getText(editor.selections[j]);
+			const startindex=document.offsetAt(editor?.selections[j].start);
+			if (code !== undefined&&startindex!==undefined) {
+				const data=compile(code,startindex,document);
+				let decorationRange:Range[]=[];
+				
+				for(let i=0;i<=data.locArray.length;i++)
+				{
+					let st:Position=new Position(0,0),ed:Position=new Position(0,0);
+					if(i===0){
+						st=editor.selections[j].start;
+						ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
+					}else if(i===data.locArray.length){
+						st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
+						ed=editor.selections[j].end;
+					}else{
+						st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
+						ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
+					}
+					decorationRange.push(new Range(st,ed));
+					
 				}
-				decorationRange.push(new Range(st,ed));
+				editor?.setDecorations(decoration, decorationRange);
 			}
-			editor?.setDecorations(decoration, decorationRange);
 		}
-		
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.unfold', () => {
-		const editor = vscode.window.activeTextEditor;
-		editor?.setDecorations(decoration, []);
+		const editor = vscode.window.activeTextEditor as vscode.TextEditor;
+		const document=editor?.document as vscode.TextDocument;
+		for(let j=0;j<editor.selections.length;j++)
+		{
+			let begin=document.offsetAt(editor.selections[j].start);
+			let end=document.offsetAt(editor.selections[j].end);
+			for(let i=0;i<decorationArray.length;i++)
+			{
+				let st=document.offsetAt(decorationArray[i]["loc"].start);
+				let ed=document.offsetAt(decorationArray[i]["loc"].end);
+				if(st>=begin&&ed<=end)
+				{
+					let tempObj=decorationArray[i];
+					decorationArray.filter(obj => obj!==tempObj);
+					let decoration=tempObj["decoration"];
+					decoration.dispose();
+				}
+			}
+
+		}
+
 
 	}));
 
