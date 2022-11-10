@@ -1,98 +1,88 @@
-
-import { text } from 'stream/consumers';
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as vsctm from 'vscode-textmate';
-//const fs = require('fs');
-const path = require('path');
-//const vsctm = require('vscode-textmate');
-const oniguruma = require('vscode-oniguruma');
+import * as path from 'path';
+import { ConsoleReporter } from '@vscode/test-electron';
+import { start } from 'repl';
+import { Position, Range } from 'vscode';
+//const path = require('path');
+// import * as generator from '@babel/generator';
+// import * as parser from '@babel/parser';
+// import * as traverse from '@babel/traverse';
+// import * as types from '@babel/types';
+const generator = require("@babel/generator");
+const parser = require("@babel/parser");
+const traverse = require("@babel/traverse");
+const types = require("@babel/types");
 
-
-// function readFile(path: string): Promise<Buffer> {
-// 	return new Promise((resolve, reject) => {
-// 		fs.readFile(path, (error: NodeJS.ErrnoException | null, data: Buffer) => error ? reject(error) : resolve(data));
-// 	});
-// }
-async function tokenText(extensionUri:string,originText?:string) {
+function compile(code: string,offset:number,document:vscode.TextDocument) {
+	// 1.parse
+	const ast = parser.parse(code);
 	
-	const wasmBin = fs.readFileSync(path.join(extensionUri, '/src/res/oniguruma/onig.wasm')).buffer;
-	const vscodeOnigurumaLib = oniguruma.loadWASM(wasmBin).then(() => {
-		return {
-			createOnigScanner(patterns: any) { return new oniguruma.OnigScanner(patterns); },
-			createOnigString(s: any) { return new oniguruma.OnigString(s); }
-		};
-	});
-	// Create a registry that can create a grammar from a scope name.
-	const registry = new vsctm.Registry({
-		onigLib: vscodeOnigurumaLib,
-		
-		loadGrammar: async (scopeName:string) => {
-			if (scopeName === 'source.java') {
-				
-				// https://github.com/textmate/javascript.tmbundle/blob/master/Syntaxes/JavaScript.plist
-				const grammarFilePath=path.join(extensionUri, '/src/res/grammar/java.tmLanguage.json');
-				const response = await new Promise<string>((resolve, reject) => {
-					fs.readFile(grammarFilePath, (e, v) => e ? reject(e) : resolve(v.toString()));
-				});
-				const g = vsctm.parseRawGrammar(response, path.resolve(grammarFilePath));
-				return g;
-			}
-			console.log(`Unknown scope name: ${scopeName}`);
-			return null;
+	// 2,traverse
+	let variableDeclarationLoc:Range[]=[];
+	const MyVisitor = {
+		VariableDeclaration(path){
+			variableDeclarationLoc.push(new Range(document.positionAt(path.node.start+offset),document.positionAt(path.node.end+offset)));
 
+		},
+		Function(path){
+			variableDeclarationLoc.push(new Range(document.positionAt(0+offset),document.positionAt(path.node.body.start+offset+1)));
+			variableDeclarationLoc.push(new Range(document.positionAt(path.node.body.end+offset-1),document.positionAt(path.node.body.end+offset)));
+			
 		}
-	});
-	// Load the JavaScript grammar and any other grammars included by it async.
-	const grammar = await registry.loadGrammar('source.java');
+	};
+	// traverse 转换代码
+	traverse.default(ast, MyVisitor);
+	variableDeclarationLoc.sort(
+		(a: Range, b: Range):number=>{
+			const aindex=document.offsetAt(a.start);
+			const bindex=document.offsetAt(b.start);
+			return aindex-bindex;
+		}
+	)
+	for(let i=0;i<variableDeclarationLoc.length;i++)
+	{
+		console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
+		终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
+	}
 	
-		const text=originText?.split('\r\n');
-		if (grammar!==null&&text!==undefined) {
-			let ruleStack = vsctm.INITIAL;
-			for (let i = 0; i < text.length; i++) {
-				const line = text[i];
-				const lineTokens = grammar.tokenizeLine(line, ruleStack);
-				console.log(`\nTokenizing line: ${line}`);
-				for (let j = 0; j < lineTokens.tokens.length; j++) {
-					const token = lineTokens.tokens[j];
-					console.log(` - token from ${token.startIndex} to ${token.endIndex} ` +
-						`(${line.substring(token.startIndex, token.endIndex)}) ` +
-						`with scopes ${token.scopes.join(', ')}`
-					);
-				}
-				ruleStack = lineTokens.ruleStack;
-			}
-		}
+	return {"locArray":variableDeclarationLoc};
 }
-
 export function activate(context: vscode.ExtensionContext) {
-	
-	
-	let foldDecorationType = vscode.window.createTextEditorDecorationType(
+	const decoration = vscode.window.createTextEditorDecorationType(
 		{
-			"opacity": "0"
+			"textDecoration": "line-through"
 		}
 	);
 	
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.fold', async () => {
 
-		const editor = vscode.window.activeTextEditor;
-		const text=editor?.document.getText(editor.selection);
+		const editor = vscode.window.activeTextEditor as vscode.TextEditor;
+		const document=editor?.document as vscode.TextDocument;
+		const code = document.getText(editor.selection);
+
+		const startindex=document.offsetAt(editor?.selection.start);
 		
-		await tokenText(context.extensionUri.path.substring(1),text);
-		foldDecorationType = vscode.window.createTextEditorDecorationType(
+		
+		
+		if (code !== undefined&&startindex!==undefined) {
+			const data=compile(code,startindex,document);
+			let decorationRange:Range[]=[];
+			
+			for(let i=1;i<data.locArray.length;i++)
 			{
-				"opacity": "0"
-			});
-		editor?.setDecorations(foldDecorationType, [editor.selection]);
-
+				const st=document.positionAt(document.offsetAt(data.locArray[i].start)-1);  
+				const ed=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1 );
+				decorationRange.push(new Range(st,ed));
+			}
+			editor?.setDecorations(decoration, decorationRange);
+			//new vscode.Range()
+		}
+		
 	}));
-	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.unfold', () => {
 
+	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.unfold', () => {
 		const editor = vscode.window.activeTextEditor;
-		const text = editor?.document.getText(editor.selection);
-		foldDecorationType.dispose();
-		editor?.setDecorations(foldDecorationType, [editor.selection]);
+		editor?.setDecorations(decoration, []);
 
 	}));
 
