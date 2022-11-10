@@ -39,12 +39,11 @@ function compile(code: string,offset:number,document:vscode.TextDocument) {
 			return aindex-bindex;
 		}
 	)
-	for(let i=0;i<variableDeclarationLoc.length;i++)
-	{
-		console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
-		终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
-	}
-	
+	// for(let i=0;i<variableDeclarationLoc.length;i++)
+	// {
+	// 	console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
+	// 	终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
+	// }
 	return {"locArray":variableDeclarationLoc};
 }
 export function activate(context: vscode.ExtensionContext) {
@@ -59,23 +58,27 @@ export function activate(context: vscode.ExtensionContext) {
 		const editor = vscode.window.activeTextEditor as vscode.TextEditor;
 		const document=editor?.document as vscode.TextDocument;
 		const code = document.getText(editor.selection);
-
 		const startindex=document.offsetAt(editor?.selection.start);
-		
-		
-		
 		if (code !== undefined&&startindex!==undefined) {
 			const data=compile(code,startindex,document);
 			let decorationRange:Range[]=[];
 			
-			for(let i=1;i<data.locArray.length;i++)
+			for(let i=0;i<=data.locArray.length;i++)
 			{
-				const st=document.positionAt(document.offsetAt(data.locArray[i].start)-1);  
-				const ed=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1 );
+				let st:Position=new Position(0,0),ed:Position=new Position(0,0);
+				if(i===0){
+					st=editor.selection.start;
+					ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
+				}else if(i===data.locArray.length){
+					st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
+					ed=editor.selection.end;
+				}else{
+					st=document.positionAt(document.offsetAt(data.locArray[i-1].end)+1); 
+					ed=document.positionAt(document.offsetAt(data.locArray[i].start)-1 );
+				}
 				decorationRange.push(new Range(st,ed));
 			}
 			editor?.setDecorations(decoration, decorationRange);
-			//new vscode.Range()
 		}
 		
 	}));
