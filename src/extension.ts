@@ -2,12 +2,10 @@ import { ConsoleReporter } from '@vscode/test-electron';
 import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import * as parser from '@babel/parser';
-// import * as babylon from 'babylon';
 const generator = require("@babel/generator");
-//const parser = require("@babel/parser");
 const traverse = require("@babel/traverse");
 const types = require("@babel/types");
-async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel) {
+async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel, foldingKind: string) {
 	// 1.parse
 	try {
 		let variableDeclarationLoc: Range[] = [];
@@ -16,6 +14,26 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 		if (ast.comments) {
 			for (let i = 0; i < ast.comments.length; i++) {
 				variableDeclarationLoc.push(new Range(document.positionAt(ast.comments[i].start!), document.positionAt(ast.comments[i].end!)));
+			}
+		}
+		function cycleStatement(path) {
+			if (path.node.body.type === 'BlockStatement') {
+				variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.body.start + 1)));
+				variableDeclarationLoc.push(new Range(document.positionAt(path.node.end - 1), document.positionAt(path.node.end)));
+				path.traverse(
+					{
+						BreakStatement(path) {
+							variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+						},
+						ContinueStatement(path) {
+							variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+						}
+					}
+				);
+			} else if (path.node.body.type === 'BreakStatement' || path.node.body.type === 'ContinueStatement') {
+				variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+			} else {
+				variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.body.start - 1)));
 			}
 		}
 		// 2,traverse
@@ -36,25 +54,97 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 				if (ed < path.node.end) {
 					variableDeclarationLoc.push(new Range(document.positionAt(ed), document.positionAt(path.node.end)));
 				}
+				if (foldingKind === 'VariableDeclaration') {
+					path.traverse(
+						{
+							VariableDeclaration(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
 
-				path.traverse(
-					{
-						VariableDeclaration(path) {
-							variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
-							//console.log("aaa");
+							}, Function(path) {
+								return;
+							}
 						}
-					}
-				);
+					);
+				} else if (foldingKind === 'BranchControl') {
+					path.traverse(
+						{
+							IfStatement(path) {
+
+								if (path.node.consequent.type === 'BlockStatement') {
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.consequent.start + 1)));
+									if (path.node.alternate) {
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.consequent.end - 1), document.positionAt(path.node.alternate.start - 1)));
+									}
+									else {
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.consequent.end - 1), document.positionAt(path.node.consequent.end)));
+									}
+								} else {
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.consequent.start - 1)));
+									if (path.node.alternate) {
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.consequent.end + 1), document.positionAt(path.node.alternate.start - 1)));
+									}
+								}
+								if (path.node.alternate) {
+									if (path.node.alternate.type === 'IfStatement') {
+										return;
+									} else if (path.node.alternate.type === 'BlockStatement') {
+
+
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.alternate.start), document.positionAt(path.node.alternate.start)));
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.alternate.end - 1), document.positionAt(path.node.alternate.end)));
+									}
+								}
+							},
+							SwitchStatement(path) {
+								if (path.node.cases.length > 0) {
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.cases[0].start - 1)));
+									for (let i = 0; i < path.node.cases.length; i++) {
+										if (path.node.cases[i].consequent) {
+											variableDeclarationLoc.push(new Range(document.positionAt(path.node.cases[i].start), document.positionAt(path.node.cases[i].consequent[0].start - 1)));
+											for (let j = 0; j < path.node.cases[i].consequent.length; j++) {
+												if (path.node.cases[i].consequent[j].type === 'BreakStatement') {
+													variableDeclarationLoc.push(new Range(document.positionAt(path.node.cases[i].consequent[j].start), document.positionAt(path.node.cases[i].consequent[j].end)));
+												}
+											}
+										} else {
+											variableDeclarationLoc.push(new Range(document.positionAt(path.node.cases[0].start), document.positionAt(path.node.cases[0].end)));
+										}
+
+									}
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.end - 1), document.positionAt(path.node.end)));
+
+								} else {
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+								}
+
+							},
+							WhileStatement(path) {
+								cycleStatement(path);
+							},
+							DoWhileStatement(path) {
+								cycleStatement(path);
+							},
+							ForStatement(path) {
+								cycleStatement(path);
+
+							}, ForInStatement(path) {
+								cycleStatement(path);
+							},
+							Function(path) {
+								return;
+							}
+						});
+				}
 			}
 		};
+		console.log("rrrr");
 		// traverse 转换代码
-		traverse.default(ast, MyVisitor);
-
-		// for(let i=0;i<variableDeclarationLoc.length;i++)
-		// {
-		// 	console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
-		// 	终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
-		// }
+		await traverse.default(ast, MyVisitor);
+		console.log("tttttt");
+		for (let i = 0; i < variableDeclarationLoc.length; i++) {
+			console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
+			终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
+		}
 		return variableDeclarationLoc;
 	} catch (error: any) {
 		outputChannel.append(error.message);
@@ -80,14 +170,14 @@ function findBlankInLineBegin(code: string, variableDeclarationLoc: Range[], doc
 		}
 	}
 }
-async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel) {
+async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel, foldingKind: string) {
 	editor.setDecorations(decoration, []);
 	const code = editor.document.getText();
 	const document = editor.document as vscode.TextDocument;
 	if (document.languageId !== 'javascript') {
 		return -1;
 	}
-	const data = await deal(code, editor.document, outputChannel);
+	const data = await deal(code, editor.document, outputChannel, foldingKind);
 	if (data === undefined) {
 		return -1;
 	}
@@ -148,11 +238,10 @@ export function activate(context: vscode.ExtensionContext) {
 	let activeEditor = vscode.window.activeTextEditor;
 	const codeFoldingChannel = vscode.window.createOutputChannel('codeFolding');
 	let foldState: number = 0;//0表示没有折叠，1表示有折叠命令
+	let foldingKind: string = vscode.workspace.getConfiguration('codeFolding').get('kind') as string;
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.fold', async () => {
 		if (activeEditor) {
-			const workspaceSettings = vscode.workspace.getConfiguration('codeFolding');
-			console.log(workspaceSettings);
-			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel);
+			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
 			if (re === 0) {
 				foldState = 1;
 			}
@@ -168,15 +257,27 @@ export function activate(context: vscode.ExtensionContext) {
 		(editor: vscode.TextEditor | undefined) => {
 			activeEditor = editor;
 			if (activeEditor && foldState === 1) {
-				updateDecorations(decoration, activeEditor, codeFoldingChannel);
+				updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
 			}
 		}, null, context.subscriptions
 	);
 	vscode.workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document && foldState === 1) {
-			updateDecorations(decoration, activeEditor, codeFoldingChannel);
+			updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
 		}
 	}, null, context.subscriptions);
+	vscode.workspace.onDidChangeConfiguration(
+		(e: vscode.ConfigurationChangeEvent) => {
+			if (e.affectsConfiguration('codeFolding.kind')) {
+				const workspaceSettings = vscode.workspace.getConfiguration('codeFolding');
+				foldingKind = workspaceSettings.get('kind') as string;
+				console.log(foldingKind);
+				if (activeEditor && foldState === 1) {
+					updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
+				}
+			}
+		}, null, context.subscriptions
+	);
 }
 // This method is called when your extension is deactivated
 export function deactivate() { }
