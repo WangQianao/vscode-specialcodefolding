@@ -7,23 +7,41 @@ const generator = require("@babel/generator");
 //const parser = require("@babel/parser");
 const traverse = require("@babel/traverse");
 const types = require("@babel/types");
-async function deal(code: string, document: vscode.TextDocument) {
+async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel) {
 	// 1.parse
-	console.log('bbbb');
 	try {
-		const ast = await parser.parse(code, { errorRecovery: true });
-		console.log('aaaa');
-		console.log(ast.errors);
-		// 2,traverse
 		let variableDeclarationLoc: Range[] = [];
+		const ast = await parser.parse(code, { errorRecovery: true });
+		//忽略注释
+		if (ast.comments) {
+			for (let i = 0; i < ast.comments.length; i++) {
+				variableDeclarationLoc.push(new Range(document.positionAt(ast.comments[i].start!), document.positionAt(ast.comments[i].end!)));
+			}
+		}
+		// 2,traverse
 		const MyVisitor = {
 			Function(path) {
-				variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.body.start + 1)));
-				variableDeclarationLoc.push(new Range(document.positionAt(path.node.body.end - 1), document.positionAt(path.node.body.end)));
+				let st = 0;
+				let ed = 0;
+				if (path.node.body.body !== undefined) {
+					st = path.node.body.body[0].start - 1;
+					ed = path.node.body.body[path.node.body.body.length - 1].end + 1;
+				} else {
+					st = path.node.body.start - 1;
+					ed = path.node.body.end + 1;
+				}
+				if (path.node.start < st) {
+					variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(st)));
+				}
+				if (ed < path.node.end) {
+					variableDeclarationLoc.push(new Range(document.positionAt(ed), document.positionAt(path.node.end)));
+				}
+
 				path.traverse(
 					{
 						VariableDeclaration(path) {
 							variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							//console.log("aaa");
 						}
 					}
 				);
@@ -39,7 +57,9 @@ async function deal(code: string, document: vscode.TextDocument) {
 		// }
 		return variableDeclarationLoc;
 	} catch (error: any) {
-		vscode.window.showErrorMessage(error.message);
+		outputChannel.append(error.message);
+		outputChannel.append('\n');
+
 	}
 }
 function findBlankInLineBegin(code: string, variableDeclarationLoc: Range[], document: vscode.TextDocument) {
@@ -60,17 +80,14 @@ function findBlankInLineBegin(code: string, variableDeclarationLoc: Range[], doc
 		}
 	}
 }
-async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor) {
-	console.log(typeof (decoration));
-	console.log(typeof (editor));
+async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel) {
 	editor.setDecorations(decoration, []);
 	const code = editor.document.getText();
 	const document = editor.document as vscode.TextDocument;
-	if(document.languageId!=='javascript')
-	{
+	if (document.languageId !== 'javascript') {
 		return -1;
 	}
-	const data = await deal(code, editor.document);
+	const data = await deal(code, editor.document, outputChannel);
 	if (data === undefined) {
 		return -1;
 	}
@@ -89,8 +106,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 
 		}
 	);
-	// for(let i=0;i<data.length;i++)
-	// {
+	// for (let i = 0; i < data.length; i++) {
 	// 	console.log(`起始行：${data[i].start.line},列：${data[i].start.character}\t
 	// 	终止行：${data[i].end.line},列：${data[i].end.character}`);
 	// }
@@ -111,7 +127,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 		} else {
 			let st: Position = new Position(0, 0), ed: Position = new Position(0, 0);
 			st = document.positionAt(e1 + 1);
-			ed = document.positionAt(s2 - 1);
+			ed = document.positionAt(s2);
 			decorationRange.push(new Range(st, ed));
 			tempRange = data[i];
 		}
@@ -119,23 +135,29 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	if (document.offsetAt(tempRange.end) < document.offsetAt(document.lineAt(document.lineCount - 1).range.end)) {
 		decorationRange.push(new Range(document.positionAt(document.offsetAt(tempRange.end) + 1), document.lineAt(document.lineCount - 1).range.end));
 	}
+	// console.log("*******************");
+	// for (let i = 0; i < decorationRange.length; i++) {
+	// 	console.log(`起始行：${decorationRange[i].start.line},列：${decorationRange[i].start.character}\t
+	// 	终止行：${decorationRange[i].end.line},列：${decorationRange[i].end.character}`);
+	// }
 	editor?.setDecorations(decoration, decorationRange);
 	return 0;
-
 }
 export function activate(context: vscode.ExtensionContext) {
 	let decoration: TextEditorDecorationType = vscode.window.createTextEditorDecorationType({ "textDecoration": "line-through" });
 	let activeEditor = vscode.window.activeTextEditor;
+	const codeFoldingChannel = vscode.window.createOutputChannel('codeFolding');
 	let foldState: number = 0;//0表示没有折叠，1表示有折叠命令
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.fold', async () => {
 		if (activeEditor) {
-			const re = await updateDecorations(decoration, activeEditor);
+			const workspaceSettings = vscode.workspace.getConfiguration('codeFolding');
+			console.log(workspaceSettings);
+			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel);
 			if (re === 0) {
 				foldState = 1;
 			}
 		}
 	}));
-
 	context.subscriptions.push(vscode.commands.registerCommand('codefoldingbasedonconerns.unfold', () => {
 		if (activeEditor) {
 			activeEditor.setDecorations(decoration, []);
@@ -146,13 +168,13 @@ export function activate(context: vscode.ExtensionContext) {
 		(editor: vscode.TextEditor | undefined) => {
 			activeEditor = editor;
 			if (activeEditor && foldState === 1) {
-				updateDecorations(decoration, activeEditor);
+				updateDecorations(decoration, activeEditor, codeFoldingChannel);
 			}
 		}, null, context.subscriptions
 	);
 	vscode.workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document && foldState === 1) {
-			updateDecorations(decoration, activeEditor);
+			updateDecorations(decoration, activeEditor, codeFoldingChannel);
 		}
 	}, null, context.subscriptions);
 }

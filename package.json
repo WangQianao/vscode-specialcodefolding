@@ -35,6 +35,24 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "codeFolding",
+      "properties": {
+        "codeFolding.kind": {
+          "type": "string",
+          "default": "VariableDeclaration",
+          "enum": [
+            "VariableDeclaration",
+            "BranchControl"
+          ],
+          "description": "codeFolding kind",
+          "enumDescriptions": [
+            "codeFolding based on VariableDeclaration",
+            "codeFolding based on BranchControl"
+          ]
+        }
+      }
     }
   },
   "scripts": {
