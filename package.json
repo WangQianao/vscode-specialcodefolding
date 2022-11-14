@@ -44,12 +44,14 @@
           "default": "VariableDeclaration",
           "enum": [
             "VariableDeclaration",
-            "BranchControl"
+            "BranchControl",
+            "ConcreteAction"
           ],
           "description": "codeFolding kind",
           "enumDescriptions": [
             "codeFolding based on VariableDeclaration",
-            "codeFolding based on BranchControl"
+            "codeFolding based on BranchControl",
+            "codeFolding based on ConcreteAction"
           ]
         }
       }

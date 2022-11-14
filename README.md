@@ -1,6 +1,7 @@
 # codefoldingbasedonconerns README
 
-This is the README for your extension "codefoldingbasedonconerns". After writing up a brief description, we recommend including the following sections.
+
+这是一个vscode插件，功能是能够自动根据下游任务的关注点，对代码中所有方法进行特殊的折叠。
 
 ## Features
 

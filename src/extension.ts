@@ -5,6 +5,7 @@ import * as parser from '@babel/parser';
 const generator = require("@babel/generator");
 const traverse = require("@babel/traverse");
 const types = require("@babel/types");
+
 async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel, foldingKind: string) {
 	// 1.parse
 	try {
@@ -134,6 +135,31 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 								return;
 							}
 						});
+				} else if (foldingKind === 'ConcreteAction') {
+					path.traverse(
+						{
+							ExpressionStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+
+							}, VariableDeclarator(path) {
+								if (path.node.init) {
+									variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end + 1)));
+								}
+
+							},
+							BreakStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							}, ContinueStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							},
+							ReturnStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							},
+							Function(path) {
+								return;
+							}
+						}
+					);
 				}
 			}
 		};
@@ -141,10 +167,10 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 		// traverse 转换代码
 		await traverse.default(ast, MyVisitor);
 		console.log("tttttt");
-		for (let i = 0; i < variableDeclarationLoc.length; i++) {
-			console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
-			终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
-		}
+		// for (let i = 0; i < variableDeclarationLoc.length; i++) {
+		// 	console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
+		// 	终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
+		// }
 		return variableDeclarationLoc;
 	} catch (error: any) {
 		outputChannel.append(error.message);
@@ -202,6 +228,27 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	// }
 	let decorationRange: Range[] = [];
 	let tempRange: Range = data[0];
+	//在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
+	//将头部和尾部两个范围加入数组中，然后删除大区间
+	for (let i = 0; i < data.length - 1; i++) {
+		let s1 = document.offsetAt(data[i].start), e1 = document.offsetAt(data[i].end);
+		let s2 = document.offsetAt(data[i + 1].start), e2 = document.offsetAt(data[i + 1].end);
+		if (e2 < e1) {
+			let lastInterval = i + 1;
+			for (let j = i + 2; j < data.length; j++) {
+				let e3 = document.offsetAt(data[j].end);
+				if (e3 < e1) {
+
+					lastInterval = j;
+				} else break;
+			}
+			if (lastInterval !== i + 1) {
+				data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
+			}
+			data.splice(i + 1, 0, new Range(document.positionAt(s1), document.positionAt(s2 - 1)));
+			data.splice(i, 1);
+		}
+	}
 	if (document.offsetAt(data[0].start) > 0) {
 		decorationRange.push(new Range(new Position(0, 0), document.positionAt(document.offsetAt(data[0].start) - 1)));
 	}
@@ -234,6 +281,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	return 0;
 }
 export function activate(context: vscode.ExtensionContext) {
+
 	let decoration: TextEditorDecorationType = vscode.window.createTextEditorDecorationType({ "textDecoration": "line-through" });
 	let activeEditor = vscode.window.activeTextEditor;
 	const codeFoldingChannel = vscode.window.createOutputChannel('codeFolding');
