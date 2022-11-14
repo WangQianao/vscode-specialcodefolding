@@ -1,10 +1,12 @@
-import { ConsoleReporter } from '@vscode/test-electron';
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import * as parser from '@babel/parser';
+import * as types from '@babel/types';
+import { type } from 'os';
 const generator = require("@babel/generator");
 const traverse = require("@babel/traverse");
-const types = require("@babel/types");
+//const types = require("@babel/types");
 
 async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel, foldingKind: string) {
 	// 1.parse
@@ -40,21 +42,14 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 		// 2,traverse
 		const MyVisitor = {
 			Function(path) {
-				let st = 0;
-				let ed = 0;
-				if (path.node.body.body !== undefined) {
-					st = path.node.body.body[0].start - 1;
-					ed = path.node.body.body[path.node.body.body.length - 1].end + 1;
+				if (path.node.body.type === 'BlockStatement') {
+					variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.body.start + 1)));
+					variableDeclarationLoc.push(new Range(document.positionAt(path.node.body.end - 1), document.positionAt(path.node.end)));
 				} else {
-					st = path.node.body.start - 1;
-					ed = path.node.body.end + 1;
+					variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.body.start - 1)));
+					variableDeclarationLoc.push(new Range(document.positionAt(path.node.body.end + 1), document.positionAt(path.node.end)));
 				}
-				if (path.node.start < st) {
-					variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(st)));
-				}
-				if (ed < path.node.end) {
-					variableDeclarationLoc.push(new Range(document.positionAt(ed), document.positionAt(path.node.end)));
-				}
+
 				if (foldingKind === 'VariableDeclaration') {
 					path.traverse(
 						{
@@ -160,6 +155,34 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 							}
 						}
 					);
+				} else if (foldingKind === 'FunctionParams') {
+					if (path.node.params.length === 0) { return; }
+					let paramsName: string[] = [];
+					for (let i = 0; i < path.node.params.length; i++) {
+						paramsName.push(path.node.params[i].name);
+					}
+					const son = path.get('body');
+					son.traverse(
+						{
+							Identifier(path) {
+								if (paramsName.indexOf(path.node.name) !== -1) {
+									let fpath = path.findParent((path) =>
+										path.node.type === 'ExpressionStatement'
+										|| path.node.type === 'BinaryExpression' || path.node.type === 'AssignmentExpression'
+										|| path.node.type === 'UpdateExpression' || path.node.type === 'CallExpression'
+										|| path.node.type === 'MemberExpression');
+									if (fpath) {
+										variableDeclarationLoc.push(new Range(document.positionAt(fpath.node.start), document.positionAt(fpath.node.end)));
+									} else {
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end - 1)));
+									}
+
+								}
+							}
+						}
+					);
+
+
 				}
 			}
 		};
@@ -240,7 +263,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 				if (e3 < e1) {
 
 					lastInterval = j;
-				} else break;
+				} else { break; }
 			}
 			if (lastInterval !== i + 1) {
 				data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
