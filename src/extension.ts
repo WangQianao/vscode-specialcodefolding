@@ -167,10 +167,7 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 							Identifier(path) {
 								if (paramsName.indexOf(path.node.name) !== -1) {
 									let fpath = path.findParent((path) =>
-										path.node.type === 'ExpressionStatement'
-										|| path.node.type === 'BinaryExpression' || path.node.type === 'AssignmentExpression'
-										|| path.node.type === 'UpdateExpression' || path.node.type === 'CallExpression'
-										|| path.node.type === 'MemberExpression');
+										types.isExpression(path.node) || types.isVariableDeclarator(path.node));
 									if (fpath) {
 										variableDeclarationLoc.push(new Range(document.positionAt(fpath.node.start), document.positionAt(fpath.node.end)));
 									} else {
@@ -181,19 +178,56 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 							}
 						}
 					);
+				} else if (foldingKind === 'Returnvalue') {
+					let paramsName: string[] = [];
+					path.traverse(
+						{
+							ReturnStatement(path) {
+								if (path.node.argument) {
+									path.traverse(
+										{
+											Identifier(path) {
+												paramsName.push(path.node.name);
+											}
+										}
+									);
+								}
+							}
+						}
+					);
+					//给参数数组去重
+					paramsName = paramsName.filter(
+						(value: string, index: number, array: string[]) => {
+							return paramsName.indexOf(value, 0) === index;
+						}
+					);
+					const son = path.get('body');
+					son.traverse(
+						{
+							Identifier(path) {
+								if (paramsName.indexOf(path.node.name) !== -1) {
+									let fpath = path.findParent((path) =>
+										types.isExpression(path.node) || types.isVariableDeclarator(path.node));
+									if (fpath) {
+										variableDeclarationLoc.push(new Range(document.positionAt(fpath.node.start), document.positionAt(fpath.node.end)));
+									} else {
+										variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end - 1)));
+									}
 
-
+								}
+							}
+						}
+					);
 				}
 			}
 		};
-		console.log("rrrr");
 		// traverse 转换代码
 		await traverse.default(ast, MyVisitor);
 		console.log("tttttt");
-		// for (let i = 0; i < variableDeclarationLoc.length; i++) {
-		// 	console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
-		// 	终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
-		// }
+		for (let i = 0; i < variableDeclarationLoc.length; i++) {
+			console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
+			终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
+		}
 		return variableDeclarationLoc;
 	} catch (error: any) {
 		outputChannel.append(error.message);
@@ -265,9 +299,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 					lastInterval = j;
 				} else { break; }
 			}
-			if (lastInterval !== i + 1) {
-				data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
-			}
+			data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
 			data.splice(i + 1, 0, new Range(document.positionAt(s1), document.positionAt(s2 - 1)));
 			data.splice(i, 1);
 		}
@@ -304,6 +336,8 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	return 0;
 }
 export function activate(context: vscode.ExtensionContext) {
+
+
 
 	let decoration: TextEditorDecorationType = vscode.window.createTextEditorDecorationType({ "textDecoration": "line-through" });
 	let activeEditor = vscode.window.activeTextEditor;

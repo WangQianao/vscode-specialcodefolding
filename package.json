@@ -46,14 +46,16 @@
             "VariableDeclaration",
             "BranchControl",
             "ConcreteAction",
-            "FunctionParams"
+            "FunctionParams",
+            "Returnvalue"
           ],
           "description": "codeFolding kind",
           "enumDescriptions": [
             "codeFolding based on VariableDeclaration",
             "codeFolding based on BranchControl",
             "codeFolding based on ConcreteAction",
-            "codeFolding based on FunctionParams"
+            "codeFolding based on FunctionParams",
+            "codeFolding based on Returnvalue"
           ]
         }
       }
