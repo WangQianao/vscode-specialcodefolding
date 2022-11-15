@@ -8,4 +8,4 @@ vscode插件，能够根据指定的关注点，对代码中所有方法进行�
 
 使用方法
 
-<img width="880" src="./show.gif">
+<img width="880" src="https://github.com/WangQianao/vscode-specialcodefolding/blob/main/show.gif">
