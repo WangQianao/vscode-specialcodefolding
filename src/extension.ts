@@ -3,10 +3,7 @@ import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import * as parser from '@babel/parser';
 import * as types from '@babel/types';
-import { type } from 'os';
-const generator = require("@babel/generator");
 const traverse = require("@babel/traverse");
-//const types = require("@babel/types");
 
 async function deal(code: string, document: vscode.TextDocument, outputChannel: vscode.OutputChannel, foldingKind: string) {
 	// 1.parse
@@ -234,16 +231,10 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 		};
 		// traverse 转换代码
 		await traverse.default(ast, MyVisitor);
-		console.log("tttttt");
-		for (let i = 0; i < variableDeclarationLoc.length; i++) {
-			console.log(`起始行：${variableDeclarationLoc[i].start.line},列：${variableDeclarationLoc[i].start.character}\t
-			终止行：${variableDeclarationLoc[i].end.line},列：${variableDeclarationLoc[i].end.character}`);
-		}
 		return variableDeclarationLoc;
 	} catch (error: any) {
 		outputChannel.append(error.message);
 		outputChannel.append('\n');
-
 	}
 }
 function findBlankInLineBegin(code: string, variableDeclarationLoc: Range[], document: vscode.TextDocument) {
@@ -290,10 +281,6 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 
 		}
 	);
-	// for (let i = 0; i < data.length; i++) {
-	// 	console.log(`起始行：${data[i].start.line},列：${data[i].start.character}\t
-	// 	终止行：${data[i].end.line},列：${data[i].end.character}`);
-	// }
 	let decorationRange: Range[] = [];
 	let tempRange: Range = data[0];
 	if (foldingKind !== 'Abnormal') {
@@ -325,8 +312,6 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	for (let i = 1; i < data.length; i++) {
 		let s1 = document.offsetAt(tempRange.start), e1 = document.offsetAt(tempRange.end);
 		let s2 = document.offsetAt(data[i].start), e2 = document.offsetAt(data[i].end);
-		// console.log(`起始行：${tempRange.start.line},列：${tempRange.start.character}\t
-		// 终止行：${tempRange.end.line},列：${tempRange.end.character}`);
 		if (e2 <= e1) {
 			continue;
 		} else if (s2 <= e1 + 1) {
@@ -342,12 +327,6 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	if (document.offsetAt(tempRange.end) < document.offsetAt(document.lineAt(document.lineCount - 1).range.end)) {
 		decorationRange.push(new Range(document.positionAt(document.offsetAt(tempRange.end) + 1), document.lineAt(document.lineCount - 1).range.end));
 	}
-
-	// console.log("*******************");
-	// for (let i = 0; i < decorationRange.length; i++) {
-	// 	console.log(`起始行：${decorationRange[i].start.line},列：${decorationRange[i].start.character}\t
-	// 	终止行：${decorationRange[i].end.line},列：${decorationRange[i].end.character}`);
-	// }
 	editor?.setDecorations(decoration, decorationRange);
 	return 0;
 }

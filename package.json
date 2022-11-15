@@ -1,7 +1,7 @@
 {
-  "name": "codefoldingbasedonconerns",
-  "displayName": "codeFoldingBasedOnConerns",
-  "description": "Code-folding-plugin-for-vscode-based-on-classification-of-concerns",
+  "name": "specialcodefolding",
+  "displayName": "SpecialCodeFolding",
+  "description": "Code-folding-plugin-for-vscode-based-on-different-concerns",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.73.0"
@@ -17,11 +17,11 @@
     "commands": [
       {
         "command": "codefoldingbasedonconerns.fold",
-        "title": "基于声明语句折叠代码"
+        "title": "折叠代码"
       },
       {
         "command": "codefoldingbasedonconerns.unfold",
-        "title": "打开基于声明语句折叠的代码"
+        "title": "打开折叠的代码"
       }
     ],
     "menus": {
@@ -87,10 +87,5 @@
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "typescript": "^4.8.4"
-  },
-  "dependencies": {
-    "babylon": "^6.18.0",
-    "vscode-oniguruma": "^1.6.2",
-    "vscode-textmate": "^7.0.3"
   }
 }
