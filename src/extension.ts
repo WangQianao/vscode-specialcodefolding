@@ -285,8 +285,8 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	let tempRange: Range = data[0];
 	if (foldingKind !== 'Abnormal') {
 
-		//在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
-		//将头部和尾部两个范围加入数组中，然后删除大区间
+		// 在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
+		// 将头部和尾部两个范围加入数组中，然后删除大区间
 		for (let i = 0; i < data.length - 1; i++) {
 			let s1 = document.offsetAt(data[i].start), e1 = document.offsetAt(data[i].end);
 			let s2 = document.offsetAt(data[i + 1].start), e2 = document.offsetAt(data[i + 1].end);

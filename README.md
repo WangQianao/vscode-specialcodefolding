@@ -1,11 +1,47 @@
-# specialcodefolding README
+# vscode-specialcodefolding
 
 
-vscode插件，能够根据指定的关注点，对代码中所有方法进行特殊的折叠。比如关注点为变量声明语句，这个插件会将代码中所有方法内的除了变量声明语句之外的代码加上删除线。
+The vscode plugin can perform special folding on all methods in the code according to the specified focus. For example, if the focus is a variable declaration statement, this plugin will add a strikethrough to the code in all methods in the code except for the variable declaration statement.
 
+[English](./README.md) | [中文](./README.zh-CN.md)
+
+[GitHub](https://github.com/WangQianao/vscode-specialcodefolding)
 ## Features
 
+### 1.codeFolding based on VariableDeclaration
+### 2.codeFolding based on BranchControl
+### 3.codeFolding based on ConcreteAction in Function
+### 4.codeFolding based on FunctionParams
+### 5.codeFolding based on Returnvalue of Function
+### 6.codeFolding based on Exception
 
-使用方法
 
-<img width="880" src="https://github.com/WangQianao/vscode-specialcodefolding/blob/main/show.gif">
+#### How to use
+
+
+<img width="800" src="https://s2.loli.net/2022/11/15/mt54AlHqxZsVk3Q.gif">
+
+
+
+
+## Config
+
+### Base Config
+
+| Name                 |   Type    | Default                | Description      |
+| :------------------- | :-------: | :-------------------:  | :--------------- |
+| `codeFolding kind  ` | ` string` | `VariableDeclaration`  | codeFolding kind |
+
+### How to change the focus of the fold
+
+<img width="800" src="https://s2.loli.net/2022/11/15/dtgTYMk1y2Nfwaq.gif" >
+
+## Problem
+
+
+Currently the plugin only supports folding **javascript** code, support for other languages ​​is under development
+
+
+## LICENSE
+
+MIT

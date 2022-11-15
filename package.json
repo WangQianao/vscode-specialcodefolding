@@ -48,7 +48,7 @@
             "ConcreteAction",
             "FunctionParams",
             "Returnvalue",
-            "Abnormal"
+            "Exception"
           ],
           "description": "codeFolding kind",
           "enumDescriptions": [
@@ -57,7 +57,7 @@
             "codeFolding based on ConcreteAction",
             "codeFolding based on FunctionParams",
             "codeFolding based on Returnvalue",
-            "codeFolding based on Abnormal"
+            "codeFolding based on Exception"
           ]
         }
       }
