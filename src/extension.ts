@@ -218,6 +218,17 @@ async function deal(code: string, document: vscode.TextDocument, outputChannel: 
 							}
 						}
 					);
+				} else if (foldingKind === 'Abnormal') {
+					path.traverse(
+						{
+							TryStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							},
+							ThrowStatement(path) {
+								variableDeclarationLoc.push(new Range(document.positionAt(path.node.start), document.positionAt(path.node.end)));
+							}
+						}
+					);
 				}
 			}
 		};
@@ -285,24 +296,28 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	// }
 	let decorationRange: Range[] = [];
 	let tempRange: Range = data[0];
-	//在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
-	//将头部和尾部两个范围加入数组中，然后删除大区间
-	for (let i = 0; i < data.length - 1; i++) {
-		let s1 = document.offsetAt(data[i].start), e1 = document.offsetAt(data[i].end);
-		let s2 = document.offsetAt(data[i + 1].start), e2 = document.offsetAt(data[i + 1].end);
-		if (e2 < e1) {
-			let lastInterval = i + 1;
-			for (let j = i + 2; j < data.length; j++) {
-				let e3 = document.offsetAt(data[j].end);
-				if (e3 < e1) {
+	if (foldingKind !== 'Abnormal') {
 
-					lastInterval = j;
-				} else { break; }
+		//在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
+		//将头部和尾部两个范围加入数组中，然后删除大区间
+		for (let i = 0; i < data.length - 1; i++) {
+			let s1 = document.offsetAt(data[i].start), e1 = document.offsetAt(data[i].end);
+			let s2 = document.offsetAt(data[i + 1].start), e2 = document.offsetAt(data[i + 1].end);
+			if (e2 < e1) {
+				let lastInterval = i + 1;
+				for (let j = i + 2; j < data.length; j++) {
+					let e3 = document.offsetAt(data[j].end);
+					if (e3 < e1) {
+
+						lastInterval = j;
+					} else { break; }
+				}
+				data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
+				data.splice(i + 1, 0, new Range(document.positionAt(s1), document.positionAt(s2 - 1)));
+				data.splice(i, 1);
 			}
-			data.splice(lastInterval + 1, 0, new Range(document.positionAt(document.offsetAt(data[lastInterval].end) + 1), document.positionAt(e1)));
-			data.splice(i + 1, 0, new Range(document.positionAt(s1), document.positionAt(s2 - 1)));
-			data.splice(i, 1);
 		}
+
 	}
 	if (document.offsetAt(data[0].start) > 0) {
 		decorationRange.push(new Range(new Position(0, 0), document.positionAt(document.offsetAt(data[0].start) - 1)));
@@ -327,6 +342,7 @@ async function updateDecorations(decoration: TextEditorDecorationType, editor: v
 	if (document.offsetAt(tempRange.end) < document.offsetAt(document.lineAt(document.lineCount - 1).range.end)) {
 		decorationRange.push(new Range(document.positionAt(document.offsetAt(tempRange.end) + 1), document.lineAt(document.lineCount - 1).range.end));
 	}
+
 	// console.log("*******************");
 	// for (let i = 0; i < decorationRange.length; i++) {
 	// 	console.log(`起始行：${decorationRange[i].start.line},列：${decorationRange[i].start.character}\t
