@@ -15,7 +15,7 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
         return -1;
     }
     findBlankInLineBegin(code, data, document);
-    data.sort(//希望以左边界排序，左边界相同情况下，右边界大的排前面
+    data.sort(//以右边界排序
         (a: Range, b: Range): number => {
             const s1 = document.offsetAt(a.start);
             const s2 = document.offsetAt(b.start);
@@ -33,8 +33,7 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
     let tempRange: Range = data[0];
     if (foldingKind !== 'Abnormal') {
 
-        // 在一个大区间包含一个小区间的情况时，遍历所有在这个大区间的所有小区间，找到第一个和最后一个在这个大区间内的小区间，
-        // 将头部和尾部两个范围加入数组中，然后删除大区间
+        //处理大区间包含小区间的情况
         for (let i = 0; i < data.length - 1; i++) {
             let s1 = document.offsetAt(data[i].start), e1 = document.offsetAt(data[i].end);
             let s2 = document.offsetAt(data[i + 1].start), e2 = document.offsetAt(data[i + 1].end);

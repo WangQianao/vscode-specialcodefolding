@@ -83,10 +83,6 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@babel/generator": "^7.20.3",
-    "@babel/parser": "^7.20.3",
-    "@babel/traverse": "^7.20.1",
-    "@babel/types": "^7.20.2",
     "@types/glob": "^8.0.0",
     "@types/mocha": "^10.0.0",
     "@types/node": "16.x",
@@ -98,5 +94,10 @@
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.20.3",
+    "@babel/traverse": "^7.20.1",
+    "@babel/types": "^7.20.2"
   }
 }
