@@ -6,6 +6,9 @@ The vscode plugin can perform special folding on all methods in the code accordi
 [English](./README.md) | [中文](./README.zh-CN.md)
 
 [GitHub](https://github.com/WangQianao/vscode-specialcodefolding)
+
+---
+
 ## Features
 
 ### 1.codeFolding based on VariableDeclaration
@@ -15,14 +18,14 @@ The vscode plugin can perform special folding on all methods in the code accordi
 ### 5.codeFolding based on Returnvalue of Function
 ### 6.codeFolding based on Exception
 
+---
 
-#### How to use
-
-
-<img width="800" src="https://s2.loli.net/2022/11/15/mt54AlHqxZsVk3Q.gif">
+### How to use
 
 
+<img width="800" src="https://s2.loli.net/2022/11/16/gXJhTmyDY7fuFV3.gif" >
 
+---
 
 ## Config
 
@@ -32,15 +35,21 @@ The vscode plugin can perform special folding on all methods in the code accordi
 | :------------------- | :-------: | :-------------------:  | :--------------- |
 | `codeFolding kind  ` | ` string` | `VariableDeclaration`  | codeFolding kind |
 
+---
+
 ### How to change the focus of the fold
 
-<img width="800" src="https://s2.loli.net/2022/11/15/dtgTYMk1y2Nfwaq.gif" >
+
+<img width="800" src="https://s2.loli.net/2022/11/16/95KSC1oRVdnbgG3.gif" >
+
+---
 
 ## Problem
 
 
 Currently the plugin only supports folding **javascript** code, support for other languages ​​is under development
 
+---
 
 ## LICENSE
 

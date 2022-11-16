@@ -1,8 +1,19 @@
 {
   "name": "specialcodefolding",
-  "displayName": "SpecialCodeFolding",
-  "description": "Code-folding-plugin-for-vscode-based-on-different-concerns",
+  "displayName": "Special Code Folding",
+  "description": "Special Code folding plugin based-on-different-concerns,such as VariableDeclaration,BranchControl and so on",
   "version": "0.0.1",
+  "publisher": "WangQianao",
+  "author": "WangQianao",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WangQianao/vscode-specialcodefolding.git"
+  },
+  "icon": "vscode-specialcodefolding-icon.png",
+  "extensionKind": [
+    "ui"
+  ],
   "engines": {
     "vscode": "^1.73.0"
   },
@@ -16,22 +27,22 @@
   "contributes": {
     "commands": [
       {
-        "command": "codefoldingbasedonconerns.fold",
-        "title": "折叠代码"
+        "command": "specialcodefolding.fold",
+        "title": "FoldCode"
       },
       {
-        "command": "codefoldingbasedonconerns.unfold",
-        "title": "打开折叠的代码"
+        "command": "specialcodefolding.expand",
+        "title": "ExpandCold"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "codefoldingbasedonconerns.unfold",
+          "command": "specialcodefolding.fold",
           "group": "navigation"
         },
         {
-          "command": "codefoldingbasedonconerns.fold",
+          "command": "specialcodefolding.expand",
           "group": "navigation"
         }
       ]
