@@ -31,7 +31,7 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
     );
     let decorationRange: Range[] = [];
     let tempRange: Range = data[0];
-    if (foldingKind !== 'Abnormal') {
+    if (foldingKind !== 'Exception') {
 
         //处理大区间包含小区间的情况
         for (let i = 0; i < data.length - 1; i++) {

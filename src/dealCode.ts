@@ -214,7 +214,7 @@ export async function deal(code: string, document: vscode.TextDocument, outputCh
                             }
                         }
                     );
-                } else if (foldingKind === 'Abnormal') {
+                } else if (foldingKind === 'Exception') {
                     path.traverse(
                         {
                             TryStatement(path) {
