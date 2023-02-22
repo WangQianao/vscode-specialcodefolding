@@ -8,24 +8,27 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
     let code='';
     if(foldingKind=="CodeSummary")
     {
-        code=editor.document.getText(editor.selection)
-        const Url='http://127.0.0.1:8000/'
-        axios({
-            method:'post',
-            url:Url,
-            data:{
-                code
-            }
-        }).then(data=>{
-            if(editor)
-            {
-                editor.edit(editBuilder =>{
-                    editBuilder.insert(editor.selection.start,"//"+data.data+"\n")
-                })
+        for(let i=0;i<editor.selections.length;i++)
+        {
+            code=editor.document.getText(editor.selections[i])
+            const Url='http://127.0.0.1:8000/'
+            axios({
+                method:'post',
+                url:Url,
+                data:{
+                    code
+                }
+            }).then(data=>{
+                if(editor)
+                {
+                    editor.edit(editBuilder =>{
+                        editBuilder.insert(editor.selections[i].start,"//"+data.data+"\n")
+                    })
 
-            }
-        })
-        .catch(err=>console.log(err))
+                }
+            })
+            .catch(err=>console.log(err))
+        }
         return 0
     }else{
        code = editor.document.getText();
