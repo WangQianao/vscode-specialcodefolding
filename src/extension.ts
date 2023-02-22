@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { TextEditorDecorationType } from 'vscode';
 import { updateDecorations } from './update';
-
+import axios from 'axios'
 export function activate(context: vscode.ExtensionContext) {
 	let decoration: TextEditorDecorationType = vscode.window.createTextEditorDecorationType({ "textDecoration": "line-through" });
 	let activeEditor = vscode.window.activeTextEditor;
@@ -25,13 +25,13 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.window.onDidChangeActiveTextEditor(
 		(editor: vscode.TextEditor | undefined) => {
 			activeEditor = editor;
-			if (activeEditor && foldState === 1) {
+			if (activeEditor && foldState === 1&&foldingKind!="CodeSummary") {
 				updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
 			}
 		}, null, context.subscriptions
 	);
 	vscode.workspace.onDidChangeTextDocument(event => {
-		if (activeEditor && event.document === activeEditor.document && foldState === 1) {
+		if (activeEditor && event.document === activeEditor.document && foldState === 1&&foldingKind!="CodeSummary") {
 			updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind);
 		}
 	}, null, context.subscriptions);

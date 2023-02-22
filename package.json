@@ -59,7 +59,8 @@
             "ConcreteAction",
             "FunctionParams",
             "Returnvalue",
-            "Exception"
+            "Exception",
+            "CodeSummary"
           ],
           "description": "codeFolding kind",
           "enumDescriptions": [
@@ -68,7 +69,8 @@
             "codeFolding based on ConcreteAction",
             "codeFolding based on FunctionParams",
             "codeFolding based on Returnvalue",
-            "codeFolding based on Exception"
+            "codeFolding based on Exception",
+            "codeSummary"
           ]
         }
       }
@@ -98,6 +100,7 @@
   "dependencies": {
     "@babel/parser": "^7.20.3",
     "@babel/traverse": "^7.20.1",
-    "@babel/types": "^7.20.2"
+    "@babel/types": "^7.20.2",
+    "axios": "^1.3.3"
   }
 }

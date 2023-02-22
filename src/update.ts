@@ -2,10 +2,34 @@
 import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import { deal, findBlankInLineBegin } from './dealCode';
-
+import axios from 'axios';
 export async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel, foldingKind: string) {
     editor.setDecorations(decoration, []);
-    const code = editor.document.getText();
+    let code='';
+    if(foldingKind=="CodeSummary")
+    {
+        code=editor.document.getText(editor.selection)
+        const Url='http://127.0.0.1:8000/'
+        axios({
+            method:'post',
+            url:Url,
+            data:{
+                code
+            }
+        }).then(data=>{
+            if(editor)
+            {
+                editor.edit(editBuilder =>{
+                    editBuilder.insert(editor.selection.start,"//"+data.data+"\n")
+                })
+
+            }
+        })
+        .catch(err=>console.log(err))
+        return 0
+    }else{
+       code = editor.document.getText();
+    }
     const document = editor.document as vscode.TextDocument;
     if (document.languageId !== 'javascript') {
         return -1;

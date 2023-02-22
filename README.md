@@ -17,6 +17,7 @@ The vscode plugin can perform special folding on all methods in the code accordi
 ### 4.codeFolding based on FunctionParams
 ### 5.codeFolding based on Returnvalue of Function
 ### 6.codeFolding based on Exception
+### 7.get method summary
 
 ---
 
@@ -47,7 +48,7 @@ The vscode plugin can perform special folding on all methods in the code accordi
 ## Problem
 
 
-Currently the plugin only supports folding **javascript** code, support for other languages ​​is under development
+Currently the plugin only supports folding **javascript** code
 
 ---
 
