@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import { deal, findBlankInLineBegin } from './dealCode';
@@ -6,10 +5,15 @@ import axios from 'axios';
 export async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel, foldingKind: string) {
     editor.setDecorations(decoration, []);
     let code='';
+    const document = editor.document as vscode.TextDocument;
+    if (document.languageId !== 'javascript') {
+        return -1;
+    }
     if(foldingKind=="CodeSummary")
     {
         for(let i=0;i<editor.selections.length;i++)
         {
+            
             code=editor.document.getText(editor.selections[i])
             const Url='http://127.0.0.1:8000/'
             axios({
@@ -19,11 +23,40 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
                     code
                 }
             }).then(data=>{
-                if(editor)
+                if(editor) 
                 {
+                    console.log(data.data)
+                    const attribution=data.data.attribution
+                    const token_index=data.data.token_index
+                    const begin_offset=document.offsetAt(editor.selections[i].start)
+                    for(let i=0;i<token_index.length;i++)
+                    {
+                        let score=attribution[i];
+                        //使用hsla颜色值对代码重要性进行标注
+                        score = Math.max(-1, Math.min(1, score))
+                        let hue,sat,lig
+                        if (score > 0){
+                            hue = 120
+                            sat = 75
+                            lig = 100 - Math.round(50 * score)
+                        }
+                        else{
+                            hue = 0
+                            sat = 75
+                            lig = 100 - Math.round(-40 * score)
+                        }
+                        let decoration: TextEditorDecorationType = vscode.
+                    window.createTextEditorDecorationType({ "backgroundColor":`hsl(${hue}, ${sat}%, ${lig}%,1)` });
+                    let decorationRange: Range[] = [];
+                    decorationRange.push(new Range(document.positionAt(begin_offset+(i-1>0?token_index[i-1]:0)),
+                            document.positionAt(begin_offset+token_index[i]) ))
+                        editor?.setDecorations(decoration,decorationRange)
+                        
+                    }
                     editor.edit(editBuilder =>{
-                        editBuilder.insert(editor.selections[i].start,"//"+data.data+"\n")
+                        editBuilder.insert(editor.selections[i].start,"//"+data.data.summary+"\n")
                     })
+
 
                 }
             })
@@ -33,10 +66,7 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
     }else{
        code = editor.document.getText();
     }
-    const document = editor.document as vscode.TextDocument;
-    if (document.languageId !== 'javascript') {
-        return -1;
-    }
+    
     const data = await deal(code, editor.document, outputChannel, foldingKind);
     if (data === undefined) {
         return -1;

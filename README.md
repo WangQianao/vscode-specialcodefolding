@@ -18,6 +18,7 @@ The vscode plugin can perform special folding on all methods in the code accordi
 ### 5.codeFolding based on Returnvalue of Function
 ### 6.codeFolding based on Exception
 ### 7.get method summary
+### 8.Evaluate the importance of statements within a method based on the method summary
 
 ---
 
