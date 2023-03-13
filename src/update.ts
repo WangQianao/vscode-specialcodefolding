@@ -2,71 +2,73 @@ import * as vscode from 'vscode';
 import { Position, Range, TextEditorDecorationType } from 'vscode';
 import { deal, findBlankInLineBegin } from './dealCode';
 import axios from 'axios';
-export async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor, outputChannel: vscode.OutputChannel, foldingKind: string) {
+import {DecorationAndRange} from './extension'
+export async function updateDecorations(decoration: TextEditorDecorationType, editor: vscode.TextEditor,
+     outputChannel: vscode.OutputChannel, foldingKind: string,all_decoration:DecorationAndRange[]) {
     editor.setDecorations(decoration, []);
-    let code='';
+    let code = '';
     const document = editor.document as vscode.TextDocument;
     if (document.languageId !== 'javascript') {
         return -1;
     }
-    if(foldingKind=="CodeSummary")
-    {
-        for(let i=0;i<editor.selections.length;i++)
-        {
-            
-            code=editor.document.getText(editor.selections[i])
-            const Url='http://127.0.0.1:8000/'
+    if (foldingKind == "CodeSummary") {
+        for (let i = 0; i < editor.selections.length; i++) {
+
+            code = editor.document.getText(editor.selections[i])
+            const Url = 'http://127.0.0.1:8000/'
             axios({
-                method:'post',
-                url:Url,
-                data:{
+                method: 'post',
+                url: Url,
+                data: {
                     code
                 }
-            }).then(data=>{
-                if(editor) 
-                {
-                    console.log(data.data)
-                    const attribution=data.data.attribution
-                    const token_index=data.data.token_index
-                    const begin_offset=document.offsetAt(editor.selections[i].start)
-                    for(let i=0;i<token_index.length;i++)
-                    {
-                        let score=attribution[i];
+            }).then(data => {
+                if (editor) {
+                    const attribution = data.data.attribution
+                    const token_index = data.data.token_index
+                    const begin_offset = document.offsetAt(editor.selections[i].start)
+                    // console.log(attribution)
+                    // console.log(token_index)
+                    for (let j = 0; j < token_index.length; j++) {
+                        let score = attribution[j];
                         //使用hsla颜色值对代码重要性进行标注
                         score = Math.max(-1, Math.min(1, score))
-                        let hue,sat,lig
-                        if (score > 0){
+                        let hue, sat, lig
+                        if (score > 0) {
                             hue = 120
                             sat = 75
                             lig = 100 - Math.round(50 * score)
                         }
-                        else{
+                        else {
                             hue = 0
                             sat = 75
                             lig = 100 - Math.round(-40 * score)
                         }
                         let decoration: TextEditorDecorationType = vscode.
-                    window.createTextEditorDecorationType({ "backgroundColor":`hsl(${hue}, ${sat}%, ${lig}%,1)` });
-                    let decorationRange: Range[] = [];
-                    decorationRange.push(new Range(document.positionAt(begin_offset+(i-1>0?token_index[i-1]:0)),
-                            document.positionAt(begin_offset+token_index[i]) ))
-                        editor?.setDecorations(decoration,decorationRange)
-                        
+                            window.createTextEditorDecorationType({ "backgroundColor": `hsl(${hue}, ${sat}%, ${lig}%,1)` });
+                        let decorationRange: Range[] = [];
+                        decorationRange.push(new Range(document.positionAt(begin_offset + (j - 1 >= 0 ? token_index[j - 1] : 0)),
+                            document.positionAt(begin_offset + token_index[j])))
+                        editor?.setDecorations(decoration, decorationRange)
+                        // console.log(decorationRange[0].start.line+" "+decorationRange[0].start.character)
+                        // console.log(decorationRange[0].end.line+" "+decorationRange[0].end.character)
+                        // console.log("***************************")
+                        all_decoration.push(new DecorationAndRange(decoration,decorationRange)) 
                     }
-                    editor.edit(editBuilder =>{
-                        editBuilder.insert(editor.selections[i].start,"//"+data.data.summary+"\n")
+                    editor.edit(editBuilder => {
+                        editBuilder.insert(
+                            new Position(editor.selections[i].end.line+1,0)
+                            , "//" + data.data.summary + "\n")
                     })
-
-
                 }
             })
-            .catch(err=>console.log(err))
+                .catch(err => console.log(err))
         }
         return 0
-    }else{
-       code = editor.document.getText();
+    } else {
+        code = editor.document.getText();
     }
-    
+
     const data = await deal(code, editor.document, outputChannel, foldingKind);
     if (data === undefined) {
         return -1;
