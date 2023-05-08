@@ -2,7 +2,7 @@
   "name": "specialcodefolding",
   "displayName": "Special Code Folding",
   "description": "Special Code folding plugin based-on-different-concerns,such as VariableDeclaration,BranchControl and so on",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "publisher": "WangQianao",
   "author": "WangQianao",
   "license": "MIT",
