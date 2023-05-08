@@ -1,6 +1,10 @@
 # Change Log
 
 All notable changes to the "codefoldingbasedonconerns" extension will be documented in this file.
+## [1.0.1] 2023-05-08
+
+### Fixed
+- 修改readme.md中一些描述不准确的地方
 
 ## [1.0.0] 2023-05-08
 
