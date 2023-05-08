@@ -56,7 +56,6 @@ export async function updateDecorations(decoration: TextEditorDecorationType, ed
                             new Position(editor.selections[i].end.line + 1, 0)
                             , "//" + data.data.summary + "\n")
                     })
-                    console.timeEnd('test');
                 }
             })
                 .catch(err => console.log(err))

@@ -20,9 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let foldingKind: string = vscode.workspace.getConfiguration('codeFolding').get('kind') as string;
 	let foldingWay: string =vscode.workspace.getConfiguration('codeFolding').get('way') as string;
 	context.subscriptions.push(vscode.commands.registerCommand('specialcodefolding.fold', async () => {
-		if (activeEditor) {
-			console.time('test');
-			
+		if (activeEditor) {	
 			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration,foldingWay);
 			if (re === 0) {
 				foldState = 1;
