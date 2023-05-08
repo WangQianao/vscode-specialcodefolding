@@ -19,7 +19,7 @@ Moreover, this plugin can generate a code summary based on the code and evaluate
 ### 5.codeFolding based on Returnvalue of Function
 ### 6.codeFolding based on Exception
 ### 7.get method summary
-### 8.Evaluate the importance of statements within a method based on the method summary(Rely on deep learning, because there is no GPU server, so can't experience this function yet)
+### 8.Evaluate the importance of statements within a method based on the method summary(7 and 8 Rely on deep learning, because there is no GPU server, so can't experience them yet)
 
 ---
 
