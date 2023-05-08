@@ -32,7 +32,7 @@
       },
       {
         "command": "specialcodefolding.expand",
-        "title": "ExpandCold"
+        "title": "ExpandCode"
       }
     ],
     "menus": {
@@ -71,6 +71,20 @@
             "codeFolding based on Returnvalue",
             "codeFolding based on Exception",
             "codeSummary"
+          ]
+        },
+        "codeFolding.way":{
+          "type": "string",
+          "default": "SELECTION",
+          "enum": [
+            "SELECTION",
+            "ALL"
+          ],
+          "description": "codeFolding way",
+          "enumDescriptions": [
+            "codeFolding what you select",
+            "codeFolding all"
+           
           ]
         }
       }

@@ -1,4 +1,3 @@
-import { start } from 'repl';
 import * as vscode from 'vscode';
 import { TextEditorDecorationType, Range } from 'vscode';
 import { updateDecorations } from './update';
@@ -19,11 +18,15 @@ export function activate(context: vscode.ExtensionContext) {
 	const codeFoldingChannel = vscode.window.createOutputChannel('codeFolding');
 	let foldState: number = 0;//0表示没有折叠，1表示有折叠命令
 	let foldingKind: string = vscode.workspace.getConfiguration('codeFolding').get('kind') as string;
+	let foldingWay: string =vscode.workspace.getConfiguration('codeFolding').get('way') as string;
 	context.subscriptions.push(vscode.commands.registerCommand('specialcodefolding.fold', async () => {
 		if (activeEditor) {
-			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration);
+			console.time('test');
+			
+			const re = await updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration,foldingWay);
 			if (re === 0) {
 				foldState = 1;
+				
 			}
 		}
 	}));
@@ -61,22 +64,23 @@ export function activate(context: vscode.ExtensionContext) {
 		(editor: vscode.TextEditor | undefined) => {
 			activeEditor = editor;
 			if (activeEditor && foldState === 1&&foldingKind!="CodeSummary") {
-				updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration);
+				updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration,foldingWay);
 			}
 		}, null, context.subscriptions
 	);
 	vscode.workspace.onDidChangeTextDocument(event => {
 		if (activeEditor && event.document === activeEditor.document && foldState === 1&&foldingKind!="CodeSummary") {
-			updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration);
+			updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration,foldingWay);
 		}
 	}, null, context.subscriptions);
 	vscode.workspace.onDidChangeConfiguration(
 		(e: vscode.ConfigurationChangeEvent) => {
-			if (e.affectsConfiguration('codeFolding.kind')) {
+			if (e.affectsConfiguration('codeFolding.kind')||e.affectsConfiguration('codeFolding.way')) {
 				const workspaceSettings = vscode.workspace.getConfiguration('codeFolding');
 				foldingKind = workspaceSettings.get('kind') as string;
+				foldingWay=workspaceSettings.get('way') as string;
 				if (activeEditor && foldState === 1) {
-					updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration);
+					updateDecorations(decoration, activeEditor, codeFoldingChannel, foldingKind,all_decoration,foldingWay);
 				}
 			}
 		}, null, context.subscriptions
